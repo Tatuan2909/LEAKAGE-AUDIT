@@ -1,0 +1,60 @@
+{
+  "best_model_key": "honest_rf",
+  "best_model_name": "Honest Random Forest (Không PageValues)",
+  "best_threshold": 0.5178390625200484,
+  "val_pr_auc": 0.3505251353598518,
+  "trained_artifacts": {
+    "baseline_dummy": {
+      "name": "Baseline: Dummy (Majority Class)",
+      "val_pr_auc": 0.156198798470781,
+      "val_roc_auc": 0.5,
+      "threshold": 0.5
+    },
+    "baseline_lr": {
+      "name": "Baseline: Logistic Regression (4 biến hành vi)",
+      "val_pr_auc": 0.27709357662163175,
+      "val_roc_auc": 0.7169348450901849,
+      "threshold": 0.5
+    },
+    "naive_lr": {
+      "name": "Naive LR (Có biến rò rỉ PageValues)",
+      "val_pr_auc": 0.602113500292073,
+      "val_roc_auc": 0.885362210604929,
+      "threshold": 0.5
+    },
+    "naive_rf": {
+      "name": "Naive RF (Có biến rò rỉ PageValues)",
+      "val_pr_auc": 0.6472932249157994,
+      "val_roc_auc": 0.9079321972525856,
+      "threshold": 0.5
+    },
+    "honest_lr": {
+      "name": "Honest Logistic Regression (Không PageValues)",
+      "best_params": {
+        "classifier__C": 0.1
+      },
+      "val_pr_auc": 0.29292993265510053,
+      "val_roc_auc": 0.7260529114898046,
+      "best_threshold": 0.5484695619822089,
+      "best_f1_val": 0.3791982665222102
+    },
+    "honest_rf": {
+      "name": "Honest Random Forest (Không PageValues)",
+      "best_params": {
+        "classifier__max_depth": 14,
+        "classifier__min_samples_leaf": 5
+      },
+      "val_pr_auc": 0.3505251353598518,
+      "val_roc_auc": 0.7633625274401973,
+      "best_threshold": 0.5178390625200484,
+      "best_f1_val": 0.4177362893815636
+    },
+    "honest_gb": {
+      "name": "Honest HistGradientBoosting (Không PageValues)",
+      "val_pr_auc": 0.3382826781147723,
+      "val_roc_auc": 0.7501278656618462,
+      "best_threshold": 0.4729645246947068,
+      "best_f1_val": 0.40641711229946526
+    }
+  }
+}

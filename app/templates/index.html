@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project 19: Dự đoán phiên mua hàng với Kiểm toán rò rỉ</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Inter font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- TOP HEADER -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-blue-500/20">
+            19
+          </div>
+          <div>
+            <h1 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">Dự Đoán Phiên Mua Hàng & Kiểm Toán Rò Rỉ</h1>
+            <p class="text-xs text-slate-500">Học Máy Cơ Bản • Bài 7 — Rò rỉ dữ liệu, chia tập đúng và đánh giá trung thực</p>
+          </div>
+        </div>
+        <div class="hidden md:flex items-center space-x-3">
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+            Honest Model Active
+          </span>
+          <span class="text-xs text-slate-400">|</span>
+          <span class="text-xs font-medium text-slate-600">GVHD: PGS.TS. Nguyễn Văn Hậu</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- IMPORTANT DISCLAIMER BANNER -->
+  <div class="bg-amber-500/10 border-b border-amber-300/40 text-amber-900 px-4 py-2.5 text-xs sm:text-sm">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+        </svg>
+        <span>
+          <strong>NGUYÊN TẮC PHẠM VI BẮT BUỘC:</strong> Quan sát là <strong>bản tóm tắt tổng hợp cuối phiên (End-of-Session Aggregate)</strong>. Tuyệt đối không gọi là dự đoán <em>"trong vài phút đầu"</em> do dữ liệu không có event timestamp. Biến <strong>PageValues</strong> đã được loại bỏ để ngăn chặn <strong>Target Proxy Leakage</strong>!
+        </span>
+      </div>
+      <a href="#screen-audit" onclick="switchTab('screen-audit')" class="hidden lg:inline text-amber-800 font-semibold underline hover:text-amber-950 ml-4">Xem kiểm toán rò rỉ &rarr;</a>
+    </div>
+  </div>
+
+  <!-- NAVIGATION TABS -->
+  <div class="bg-white border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav class="flex space-x-6 sm:space-x-8 -mb-px" aria-label="Tabs">
+        <button id="tab-btn-audit" onclick="switchTab('screen-audit')" class="tab-btn active border-b-2 border-blue-600 py-3.5 px-1 text-sm font-semibold text-blue-600 flex items-center space-x-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <span>Màn Hình 1: Bối Cảnh & Kiểm Toán Rò Rỉ</span>
+        </button>
+        <button id="tab-btn-predict" onclick="switchTab('screen-predict')" class="tab-btn border-b-2 border-transparent py-3.5 px-1 text-sm font-medium text-slate-500 hover:text-slate-700 hover:border-slate-300 flex items-center space-x-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <span>Màn Hình 2: Thao Tác Dự Đoán & Chấm Điểm Phiên</span>
+        </button>
+        <button id="tab-btn-dashboard" onclick="switchTab('screen-dashboard')" class="tab-btn border-b-2 border-transparent py-3.5 px-1 text-sm font-medium text-slate-500 hover:text-slate-700 hover:border-slate-300 flex items-center space-x-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <span>Màn Hình 3: Dashboard 4 Thí Nghiệm & Model Card</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- MAIN BODY CONTENT -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- =============================================================== -->
+    <!-- MÀN HÌNH 1: BỐI CẢNH & KIỂM TOÁN RÒ RỈ (SCREEN 1) -->
+    <!-- =============================================================== -->
+    <div id="screen-audit" class="tab-content block space-y-6">
+      
+      <!-- Giới thiệu đề tài -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+        <div class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 mb-4">
+          Nội Dung Bài Học: Rò rỉ dữ liệu, chia tập đúng và đánh giá trung thực
+        </div>
+        <h2 class="text-2xl font-bold text-slate-900 tracking-tight mb-3">
+          Project 19 — Dự Đoán Phiên Mua Hàng Với Kiểm Toán Rò Rỉ
+        </h2>
+        <p class="text-slate-600 leading-relaxed text-sm sm:text-base">
+          Trong thương mại điện tử, việc phân loại phiên truy cập có kết thúc bằng giao dịch (<code class="text-blue-600 font-mono">Revenue = True</code>) 
+          giúp nhóm marketing tối ưu hóa ngân sách và cá nhân hóa trải nghiệm. Tuy nhiên, các hệ thống thu thập dữ liệu web phân tích 
+          thường tính toán các chỉ số tổng hợp có khả năng mang thông tin tương lai của kết quả phiên. 
+          Nghiên cứu này tập trung kiểm toán và chứng minh sự sụp đổ của mô hình ngây thơ (Naive Model) khi bị rò rỉ dữ liệu và xây dựng quy trình đánh giá trung thực (Honest Pipeline).
+        </p>
+
+        <!-- Thẻ tóm tắt thông số -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+            <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">Đơn Vị Quan Sát</div>
+            <div class="text-sm font-bold text-slate-800 mt-1">Một phiên web tổng hợp</div>
+            <div class="text-xs text-slate-400 mt-0.5">End-of-session summary</div>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+            <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">Bộ Dữ Liệu</div>
+            <div class="text-sm font-bold text-slate-800 mt-1">12.330 phiên (UCI)</div>
+            <div class="text-xs text-slate-400 mt-0.5">1.908 dương (15.5%)</div>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+            <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">Biến Nghi Vấn</div>
+            <div class="text-sm font-bold text-rose-600 mt-1">PageValues (Proxy)</div>
+            <div class="text-xs text-rose-500 mt-0.5">Bị cấm trong mô hình chính</div>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+            <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">Chỉ Số Trọng Tâm</div>
+            <div class="text-sm font-bold text-blue-600 mt-1">PR-AUC, ROC, Brier</div>
+            <div class="text-xs text-blue-500 mt-0.5">Đánh giá trung thực mất cân bằng</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phân tích rò rỉ dữ liệu PageValues -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <div class="flex items-center space-x-3 text-rose-600 mb-3">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+            <h3 class="text-lg font-bold text-slate-900">Vì sao PageValues là rò rỉ dữ liệu (Target Leakage)?</h3>
+          </div>
+          <p class="text-slate-600 text-sm leading-relaxed mb-4">
+            Theo đặc tả chính thức của Google Analytics, chỉ số <strong>Page Value</strong> được tính bằng công thức:
+          </p>
+          <div class="bg-slate-900 text-emerald-400 p-4 rounded-xl font-mono text-xs mb-4 overflow-x-auto shadow-inner">
+            Page Value = (Ecommerce Revenue + Total Goal Value) / Unique Pageviews
+          </div>
+          <p class="text-slate-600 text-sm leading-relaxed">
+            Nghĩa là: nếu một phiên kết thúc bằng việc mua hàng (<code class="bg-slate-100 px-1 py-0.5 rounded text-rose-600">Revenue = True</code>), 
+            toàn bộ các trang được duyệt trong phiên đó sẽ được tính ngược (retrospectively) một giá trị PageValue dương rất lớn! 
+            Trong dữ liệu thực tế:
+          </p>
+          <ul class="list-disc list-inside text-xs sm:text-sm text-slate-600 space-y-1.5 mt-2 bg-rose-50/50 p-3 rounded-lg border border-rose-100">
+            <li>Phiên <strong>Không Mua Hàng</strong>: 75% giá trị có <code class="font-bold">PageValues = 0.0</code> (trung bình chỉ 1.98).</li>
+            <li>Phiên <strong>Có Mua Hàng</strong>: Trung bình <code class="font-bold text-rose-700">PageValues = 27.26</code>, trung vị 16.76.</li>
+            <li>Đưa biến này vào huấn luyện tạo ra <strong>lối tắt học tập (shortcut learning)</strong>, điểm số giả tạo cực cao nhưng vô dụng ngoài đời thực.</li>
+          </ul>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <div class="flex items-center space-x-3 text-blue-600 mb-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <h3 class="text-lg font-bold text-slate-900">Vì sao không tuyên bố dự đoán "ở phút đầu"?</h3>
+          </div>
+          <p class="text-slate-600 text-sm leading-relaxed mb-4">
+            Nhiều bài báo trên mạng thiếu thận trọng khi tuyên bố mô hình có thể dự đoán người dùng có mua hàng <em>"ngay trong vài phút đầu duyệt web"</em>. Nhóm nghiên cứu khẳng định đây là tuyên bố sai bản chất:
+          </p>
+          <div class="space-y-3 text-sm text-slate-600">
+            <div class="flex items-start space-x-2">
+              <span class="text-emerald-500 font-bold">&#10003;</span>
+              <span><strong>Không có dữ liệu chuỗi sự kiện:</strong> Bộ dữ liệu Online Shoppers hoàn toàn không có mốc thời gian (timestamp) theo từng click hoặc snapshot ở phút thứ 2, phút thứ 5.</span>
+            </div>
+            <div class="flex items-start space-x-2">
+              <span class="text-emerald-500 font-bold">&#10003;</span>
+              <span><strong>Chỉ số tích lũy:</strong> Các thuộc tính như <code class="bg-slate-100 px-1 py-0.5 rounded">ProductRelated_Duration = 2981s</code> (gần 50 phút) là tổng thời gian của cả phiên sau khi phiên đã đóng.</span>
+            </div>
+            <div class="flex items-start space-x-2">
+              <span class="text-emerald-500 font-bold">&#10003;</span>
+              <span><strong>Tuyên bố trung thực:</strong> Ứng dụng này chỉ thực hiện <strong>Phân loại phiên sau khi tổng hợp</strong> nhằm phục vụ phân khúc khách hàng và hậu kiểm chiến dịch.</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Nguyên tắc chia tập và cam kết tái lập -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <h3 class="text-lg font-bold text-slate-900 mb-3 flex items-center space-x-2">
+          <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          <span>Quy Tắc Không Thương Lượng (Non-negotiable Rules) Trong Dự Án</span>
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs sm:text-sm text-slate-600">
+          <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+            <div class="font-bold text-slate-800 mb-1">1. Phân chia tập độc lập trước tiên</div>
+            <p>Tập Test được đóng băng ngay từ đầu. Mọi Transformer, Scaler, OneHotEncoder và Tuning tham số chỉ được phép fit duy nhất trên tập Train.</p>
+          </div>
+          <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+            <div class="font-bold text-slate-800 mb-1">2. Test chỉ xem 1 lần</div>
+            <p>Tuyệt đối không dùng kết quả trên Test để quay lại chọn mô hình hoặc chỉnh sửa ngưỡng. Mọi quyết định ngưỡng chọn đều diễn ra trên tập Validation.</p>
+          </div>
+          <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+            <div class="font-bold text-slate-800 mb-1">3. Tách biệt Train và Serving</div>
+            <p>Hệ thống Web/API chỉ nạp mô hình đã tuần tự hóa qua Joblib, không tái huấn luyện khi có request đến, đảm bảo phản hồi tức thì và an toàn môi trường.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- MÀN HÌNH 2: THAO TÁC DỰ ĐOÁN & CHẤM ĐIỂM PHIÊN (SCREEN 2) -->
+    <!-- =============================================================== -->
+    <div id="screen-predict" class="tab-content hidden space-y-6">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- CỘT TRÁI: FORM NHẬP LIỆU -->
+        <div class="lg:col-span-7 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100">
+            <div>
+              <h2 class="text-lg font-bold text-slate-900">Dữ Liệu Phiên Tổng Hợp Cuối Phiên</h2>
+              <p class="text-xs text-slate-500">Nhập các chỉ số hoặc chọn mẫu dữ liệu thử nghiệm an toàn</p>
+            </div>
+            
+            <!-- Quick Demo Presets -->
+            <div class="flex items-center space-x-1.5">
+              <span class="text-xs text-slate-400 mr-1">Mẫu nhanh:</span>
+              <button type="button" onclick="loadPreset('high_intent')" class="px-2.5 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition">
+                Tiềm năng cao
+              </button>
+              <button type="button" onclick="loadPreset('bounce')" class="px-2.5 py-1 text-xs font-semibold bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg border border-rose-200 transition">
+                Thoát ngay
+              </button>
+              <button type="button" onclick="loadPreset('browsing')" class="px-2.5 py-1 text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg border border-blue-200 transition">
+                Duyệt phân vân
+              </button>
+            </div>
+          </div>
+
+          <!-- FORM -->
+          <form id="scoring-form" class="space-y-4">
+            
+            <!-- Nhóm 1: Trang quản trị & Thông tin -->
+            <div>
+              <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">1. Trang Quản Trị & Thông Tin</div>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-slate-700">Administrative</label>
+                  <input type="number" id="Administrative" name="Administrative" value="2" min="0" max="30" class="mt-1 w-full rounded-lg border-slate-300 shadow-sm text-sm p-2 border focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required>
+                  <span class="text-[10px] text-slate-400">[0, 30] trang</span>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-700">Admin Duration</label>
+                  <input type="number" step="0.1" id="Administrative_Duration" name="Administrative_Duration" value="54.0" min="0" max="5000" class="mt-1 w-full rounded-lg border-slate-300 shadow-sm text-sm p-2 border focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required>
+                  <span class="text-[10px] text-slate-400">[0, 5000] giây</span>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-700">Informational</label>
+                  <input type="number" id="Informational" name="Informational" value="0" min="0" max="30" class="mt-1 w-full rounded-lg border-slate-300 shadow-sm text-sm p-2 border focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required>
+                  <span class="text-[10px] text-slate-400">[0, 30] trang</span>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-700">Info Duration</label>
+                  <input type="number" step="0.1" id="Informational_Duration" name="Informational_Duration" value="0.0" min="0" max="3500" class="mt-1 w-full rounded-lg border-slate-300 shadow-sm text-sm p-2 border focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required>
+                  <span class="text-[10px] text-slate-400">[0, 3500] giây</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Nhóm 2: Trang sản phẩm & Thời gian duyệt -->
+            <div>
+              <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">2. Trang Sản Phẩm & Tương Tác</div>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-slate-700">ProductRelated</label>
+                  <input type="number" id="ProductRelated" name="ProductRelated" value="38" min="0" max="1000" class="mt-1 w-full rounded-lg border-slate-300 shadow-sm text-sm p-2 border focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required>
+                  <span class="text-[10px] text-slate-400">[0, 1000] trang</span>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-700">Product Duration</label>
+                  <input type="number" step="0.1" id="ProductRelated_Duration" name="ProductRelated_Duration" value="1850.5" min="0" max="100000" class="mt-1 w-full rounded-lg border-slate-300 shadow-sm text-sm p-2 border focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required>
+                  <span class="text-[10px] text-slate-400">[0, 100k] giây</span>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-700">BounceRates</label>
+                  <input type="number" step="0.001" id="BounceRates" name="BounceRates" value="0.005" min="0" max="0.2" class="mt-1 w-full rounded-lg border-slate-300 shadow-sm text-sm p-2 border focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required>
+                  <span class="text-[10px] text-slate-400">[0.0, 0.2] tỷ lệ</span>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-700">ExitRates</label>
+                  <input type="number" step="0.001" id="ExitRates" name="ExitRates" value="0.018" min="0" max="0.2" class="mt-1 w-full rounded-lg border-slate-300 shadow-sm text-sm p-2 border focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required>
+                  <span class="text-[10px] text-slate-400">[0.0, 0.2] tỷ lệ</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Nhóm 3: Môi trường & Khách truy cập -->
+            <div>
+              <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">3. Môi Trường, Thời Điểm & Phân Loại</div>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-slate-700">Month (Tháng)</label>
+                  <select id="Month" name="Month" class="mt-1 w-full rounded-lg border-slate-300 shadow-sm text-sm p-2 border focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="Nov" selected>Tháng 11 (Nov)</option>
+                    <option value="May">Tháng 5 (May)</option>
+                    <option value="Mar">Tháng 3 (Mar)</option>
+                    <option value="Dec">Tháng 12 (Dec)</option>
+                    <option value="Oct">Tháng 10 (Oct)</option>
+                    <option value="Sep">Tháng 9 (Sep)</option>
+                    <option value="Aug">Tháng 8 (Aug)</option>
+                    <option value="Jul">Tháng 7 (Jul)</option>
+                    <option value="June">Tháng 6 (June)</option>
+                    <option value="Feb">Tháng 2 (Feb)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-700">VisitorType</label>
+                  <select id="VisitorType" name="VisitorType" class="mt-1 w-full rounded-lg border-slate-300 shadow-sm text-sm p-2 border focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="Returning_Visitor" selected>Khách quen (Returning)</option>
+                    <option value="New_Visitor">Khách mới (New Visitor)</option>
+                    <option value="Other">Khác (Other)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-700">Weekend (Cuối tuần)</label>
+                  <select id="Weekend" name="Weekend" class="mt-1 w-full rounded-lg border-slate-300 shadow-sm text-sm p-2 border focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="false" selected>Ngày thường (False)</option>
+                    <option value="true">Cuối tuần (True)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-700">SpecialDay</label>
+                  <input type="number" step="0.1" id="SpecialDay" name="SpecialDay" value="0.0" min="0" max="1.0" class="mt-1 w-full rounded-lg border-slate-300 shadow-sm text-sm p-2 border focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required>
+                  <span class="text-[10px] text-slate-400">[0.0, 1.0] ngày lễ</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Thuộc tính bổ trợ hệ thống -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+              <div>
+                <label class="block text-xs font-medium text-slate-700">OperatingSystems</label>
+                <input type="number" id="OperatingSystems" name="OperatingSystems" value="2" min="1" max="8" class="mt-1 w-full rounded-lg border-slate-300 shadow-sm text-sm p-2 border" required>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-700">Browser</label>
+                <input type="number" id="Browser" name="Browser" value="2" min="1" max="13" class="mt-1 w-full rounded-lg border-slate-300 shadow-sm text-sm p-2 border" required>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-700">Region</label>
+                <input type="number" id="Region" name="Region" value="1" min="1" max="9" class="mt-1 w-full rounded-lg border-slate-300 shadow-sm text-sm p-2 border" required>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-700">TrafficType</label>
+                <input type="number" id="TrafficType" name="TrafficType" value="2" min="1" max="20" class="mt-1 w-full rounded-lg border-slate-300 shadow-sm text-sm p-2 border" required>
+              </div>
+            </div>
+
+            <!-- PHẦN THỬ NGHIỆM RÒ RỈ DỮ LIỆU (LEAKAGE TESTING OPTION) -->
+            <div class="bg-rose-50/70 border border-rose-200/80 rounded-xl p-3.5 space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                  <input type="checkbox" id="toggle-leakage-input" onchange="toggleLeakageField()" class="rounded text-rose-600 focus:ring-rose-500 h-4 w-4">
+                  <span class="text-xs font-bold text-rose-800">Thử nghiệm đưa biến rò rỉ PageValues vào để đối chiếu</span>
+                </label>
+                <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-rose-200 text-rose-800">Kiểm toán</span>
+              </div>
+              <div id="leakage-input-container" class="hidden">
+                <label class="block text-xs font-medium text-rose-900">PageValues (Điểm giá trị trang theo Google Analytics):</label>
+                <input type="number" step="0.01" id="PageValues" name="PageValues" value="0.0" min="0" max="400" class="mt-1 w-full rounded-lg border-rose-300 shadow-sm text-sm p-2 border bg-white focus:border-rose-500 focus:ring-1 focus:ring-rose-500">
+                <p class="text-[11px] text-rose-600 mt-1">
+                  <em>Lưu ý: Mô hình chính Honest Model sẽ luôn bỏ qua biến này. Nếu bạn nhập giá trị &gt; 0, hệ thống sẽ kích hoạt bộ so sánh ngây thơ để chứng minh hiện tượng thổi phồng xác suất!</em>
+                </p>
+              </div>
+            </div>
+
+            <!-- Nút gọi API -->
+            <div class="pt-2">
+              <button type="submit" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-md shadow-blue-500/20 transition flex items-center justify-center space-x-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>Chấm Điểm Phiên (Gọi API: POST /api/session-score)</span>
+              </button>
+            </div>
+
+          </form>
+
+        </div>
+
+        <!-- CỘT PHẢI: KẾT QUẢ DỰ ĐOÁN & KIỂM TOÁN -->
+        <div class="lg:col-span-5 space-y-6">
+          
+          <div id="result-box" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 class="text-base font-bold text-slate-900">Kết Quả Phân Tích Cuối Phiên</h3>
+              <span id="badge-status" class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600">Sẵn sàng</span>
+            </div>
+
+            <!-- Probability Gauge -->
+            <div>
+              <div class="flex justify-between items-baseline mb-1">
+                <span class="text-xs font-semibold text-slate-500">Xác Suất Mua Hàng (Honest Model)</span>
+                <span id="prob-percentage" class="text-2xl font-black text-blue-600">--%</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden">
+                <div id="prob-progress" class="bg-blue-600 h-3.5 rounded-full transition-all duration-700" style="width: 0%"></div>
+              </div>
+              <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                <span>0% (Không mua)</span>
+                <span>Ngưỡng tối ưu: 51.8%</span>
+                <span>100% (Mua hàng)</span>
+              </div>
+            </div>
+
+            <!-- Decision Card -->
+            <div id="decision-card" class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="text-xs font-medium text-slate-500 uppercase">Dự Đoán Kết Quả:</div>
+              <div id="decision-text" class="text-lg font-bold text-slate-800 mt-0.5">Chưa có dữ liệu</div>
+              <div id="intent-level" class="text-xs text-slate-600 mt-1">Vui lòng bấm nút "Chấm Điểm Phiên"</div>
+            </div>
+
+            <!-- Marketing Recommendation -->
+            <div class="p-4 rounded-xl bg-blue-50/60 border border-blue-100 text-xs text-slate-700 space-y-1">
+              <div class="font-bold text-blue-900 flex items-center space-x-1">
+                <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14H8a4 4 0 01-.8-7.92A4.012 4.012 0 0111 6a4.012 4.012 0 013.8 2.08A4 4 0 0112 14z"/></svg>
+                <span>Hành Động Khuyến Nghị Cho Nhóm Marketing:</span>
+              </div>
+              <p id="recommendation-text" class="text-slate-600 leading-relaxed">
+                Hệ thống sẽ gợi ý hành động kích hoạt sau khi có điểm số.
+              </p>
+            </div>
+
+            <!-- Leakage Comparison Result Alert (Nếu có nhập PageValues) -->
+            <div id="leakage-result-box" class="hidden p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-900 space-y-2 animate-pulse">
+              <div class="font-bold text-rose-700 flex items-center space-x-1.5">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                <span>PHÁT HIỆN THỔI PHỒNG ĐIỂM SỐ DO RÒ RỈ (LEAKAGE DETECTED)!</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-center py-1">
+                <div class="bg-white/80 p-2 rounded border border-rose-100">
+                  <span class="block text-[10px] text-slate-500">Mô hình Trung thực</span>
+                  <span id="leak-honest-prob" class="font-bold text-emerald-600 text-base">--</span>
+                </div>
+                <div class="bg-white/80 p-2 rounded border border-rose-100">
+                  <span class="block text-[10px] text-rose-500">Mô hình Ngây thơ (+PageValues)</span>
+                  <span id="leak-naive-prob" class="font-bold text-rose-600 text-base">--</span>
+                </div>
+              </div>
+              <p id="leak-warning-text" class="text-[11px] text-rose-700 leading-snug">
+                Xác suất bị thổi phồng giả tạo do sử dụng thông tin hậu kết quả.
+              </p>
+            </div>
+
+            <!-- JSON Output Toggle -->
+            <div class="pt-2">
+              <details class="text-xs text-slate-500">
+                <summary class="cursor-pointer hover:text-slate-700 font-semibold">Xem JSON phản hồi từ API</summary>
+                <pre id="api-raw-json" class="mt-2 bg-slate-900 text-emerald-400 p-3 rounded-lg overflow-x-auto text-[11px] font-mono leading-tight">{}</pre>
+              </details>
+            </div>
+
+          </div>
+
+          <!-- Card giải thích model serving -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 text-xs text-slate-500 space-y-2">
+            <div class="font-bold text-slate-700 flex items-center space-x-1.5">
+              <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              <span>Kiến Trúc Phục Vụ (Serving Architecture):</span>
+            </div>
+            <p>
+              Hệ thống sử dụng pipeline đóng gói <code class="font-mono text-slate-700">Honest Random Forest</code> (được huấn luyện offline trên 8.543 phiên và tinh chỉnh qua 5-Fold Stratified CV). Tuyệt đối không tính toán dữ liệu rò rỉ trong lúc phục vụ.
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- MÀN HÌNH 3: DASHBOARD 4 THÍ NGHIỆM & MODEL CARD (SCREEN 3) -->
+    <!-- =============================================================== -->
+    <div id="screen-dashboard" class="tab-content hidden space-y-6">
+      
+      <!-- HEADER DASHBOARD -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <h2 class="text-xl font-bold text-slate-900 mb-1">
+          Báo Cáo Thực Nghiệm & Bằng Chứng Khoa Học
+        </h2>
+        <p class="text-sm text-slate-600">
+          Kết quả bốn thí nghiệm bắt buộc theo rubric đánh giá Bài 7 — Rò rỉ dữ liệu, chia tập đúng và đánh giá trung thực.
+        </p>
+
+        <!-- BẢNG SO SÁNH CÁC MÔ HÌNH TRÊN TẬP TEST ĐỘC LẬP -->
+        <div class="mt-6 overflow-x-auto">
+          <table class="min-w-full text-xs text-left divide-y divide-slate-200 border border-slate-200 rounded-xl overflow-hidden">
+            <thead class="bg-slate-50 font-bold text-slate-700">
+              <tr>
+                <th class="px-3.5 py-3">Mô hình / Tiếp cận</th>
+                <th class="px-3 py-3">Rò rỉ PageValues?</th>
+                <th class="px-3 py-3 text-right">PR-AUC</th>
+                <th class="px-3 py-3 text-right">ROC-AUC</th>
+                <th class="px-3 py-3 text-right">Precision</th>
+                <th class="px-3 py-3 text-right">Recall</th>
+                <th class="px-3 py-3 text-right">F1-Score</th>
+                <th class="px-3 py-3 text-right">Brier Score</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 bg-white">
+              <tr class="hover:bg-slate-50">
+                <td class="px-3.5 py-2.5 font-medium text-slate-800">Dummy (Majority Baseline)</td>
+                <td class="px-3 py-2.5 text-emerald-600 font-semibold">Không</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.1562</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.5000</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.0000</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.0000</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.0000</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.1318</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="px-3.5 py-2.5 font-medium text-slate-800">Baseline LR (4 biến hành vi)</td>
+                <td class="px-3 py-2.5 text-emerald-600 font-semibold">Không</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.2882</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.7088</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.2304</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.7587</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.3534</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.2241</td>
+              </tr>
+              <tr class="hover:bg-slate-50 bg-emerald-50/30">
+                <td class="px-3.5 py-2.5 font-bold text-emerald-900">Honest Random Forest (Chính)</td>
+                <td class="px-3 py-2.5 text-emerald-600 font-semibold">Không</td>
+                <td class="px-3 py-2.5 text-right font-mono font-bold text-emerald-700">0.3709</td>
+                <td class="px-3 py-2.5 text-right font-mono font-bold text-emerald-700">0.7822</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.3087</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.6713</td>
+                <td class="px-3 py-2.5 text-right font-mono font-bold text-emerald-700">0.4229</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.1756</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="px-3.5 py-2.5 font-medium text-slate-800">Honest HistGradientBoosting</td>
+                <td class="px-3 py-2.5 text-emerald-600 font-semibold">Không</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.3730</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.7853</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.3311</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.6818</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.4457</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.1659</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="px-3.5 py-2.5 font-medium text-slate-800">Honest Logistic Regression</td>
+                <td class="px-3 py-2.5 text-emerald-600 font-semibold">Không</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.3278</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.7460</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.2643</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.7448</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.3901</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.2117</td>
+              </tr>
+              <tr class="hover:bg-slate-50 bg-rose-50/40 text-rose-900">
+                <td class="px-3.5 py-2.5 font-bold">Naive Random Forest (Leakage)</td>
+                <td class="px-3 py-2.5 text-rose-600 font-bold">Có (Rò rỉ)</td>
+                <td class="px-3 py-2.5 text-right font-mono font-bold text-rose-600">0.7305</td>
+                <td class="px-3 py-2.5 text-right font-mono font-bold text-rose-600">0.9282</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.5469</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.8566</td>
+                <td class="px-3 py-2.5 text-right font-mono font-bold text-rose-600">0.6676</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.1157</td>
+              </tr>
+              <tr class="hover:bg-slate-50 bg-rose-50/40 text-rose-900">
+                <td class="px-3.5 py-2.5 font-medium">Naive Logistic Regression (Leakage)</td>
+                <td class="px-3 py-2.5 text-rose-600 font-bold">Có (Rò rỉ)</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.6728</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.9085</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.5011</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.8042</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.6174</td>
+                <td class="px-3 py-2.5 text-right font-mono">0.1214</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 4 THÍ NGHIỆM CHI TIẾT (CARDS WITH FIGURES) -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- THÍ NGHIỆM 1 -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+          <div class="flex items-center space-x-2 text-blue-600">
+            <span class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center font-bold text-xs">1</span>
+            <h3 class="font-bold text-slate-900 text-sm">Thí nghiệm 1: Ổn định Stratified Split qua Seed</h3>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Chứng minh việc chia Stratified bảo toàn tỷ lệ lớp dương 15.6% đồng đều qua các seed (42, 100, 2024, 777, 999), ngăn chặn phương sai không mong muốn so với chia ngẫu nhiên thông thường (Unstratified).
+          </p>
+          <div class="rounded-xl overflow-hidden border border-slate-100 bg-slate-50">
+            <img src="{{ url_for('static', filename='figures/exp1_seed_stability.png') }}" alt="Thí nghiệm 1" class="w-full h-auto object-cover hover:scale-[1.02] transition duration-300">
+          </div>
+        </div>
+
+        <!-- THÍ NGHIỆM 2 -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+          <div class="flex items-center space-x-2 text-rose-600">
+            <span class="w-6 h-6 rounded-full bg-rose-100 flex items-center justify-center font-bold text-xs">2</span>
+            <h3 class="font-bold text-slate-900 text-sm">Thí nghiệm 2: Kiểm toán rò rỉ PageValues & Feature Importance</h3>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Điểm số PR-AUC sụt giảm từ 0.7305 xuống 0.3709 khi loại bỏ PageValues. Đồ thị chứng minh PageValues chiếm trọn trọng số (Gini Importance) và che mờ toàn bộ hành vi duyệt thực tế trong mô hình ngây thơ.
+          </p>
+          <div class="rounded-xl overflow-hidden border border-slate-100 bg-slate-50">
+            <img src="{{ url_for('static', filename='figures/exp2_leakage_audit_comparison.png') }}" alt="Thí nghiệm 2" class="w-full h-auto object-cover hover:scale-[1.02] transition duration-300">
+          </div>
+        </div>
+
+        <!-- THÍ NGHIỆM 3 -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+          <div class="flex items-center space-x-2 text-emerald-600">
+            <span class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center font-bold text-xs">3</span>
+            <h3 class="font-bold text-slate-900 text-sm">Thí nghiệm 3: PR Curve & ROC Curve trên dữ liệu mất cân bằng</h3>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Với tỷ lệ dương chỉ 15.6%, đường cong ROC dễ gây lạc quan thái quá (ROC-AUC ~0.78-0.93) do số lượng True Negative quá lớn. Đường PR Curve (No-skill baseline = 0.156) phản ánh năng lực phân biệt trung thực hơn.
+          </p>
+          <div class="rounded-xl overflow-hidden border border-slate-100 bg-slate-50">
+            <img src="{{ url_for('static', filename='figures/exp3_pr_vs_roc_curve.png') }}" alt="Thí nghiệm 3" class="w-full h-auto object-cover hover:scale-[1.02] transition duration-300">
+          </div>
+        </div>
+
+        <!-- THÍ NGHIỆM 4 -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+          <div class="flex items-center space-x-2 text-purple-600">
+            <span class="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center font-bold text-xs">4</span>
+            <h3 class="font-bold text-slate-900 text-sm">Thí nghiệm 4: Calibration Curve & Sai số theo Tháng/Khách hàng</h3>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Biểu đồ Reliability Diagram đánh giá độ chuẩn xác xác suất và Brier score. Phân tích sai số cho thấy mô hình hoạt động hiệu quả nhất vào mùa mua sắm tháng 11 (Nov) và nhóm khách mới (New Visitor).
+          </p>
+          <div class="rounded-xl overflow-hidden border border-slate-100 bg-slate-50">
+            <img src="{{ url_for('static', filename='figures/exp4_calibration_curve.png') }}" alt="Thí nghiệm 4" class="w-full h-auto object-cover hover:scale-[1.02] transition duration-300">
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ĐỒ THỊ BỔ SUNG: ERROR BREAKDOWN VÀ CONFUSION MATRIX -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+          <h3 class="font-bold text-slate-900 text-sm">Phân tích sai số theo Tháng (Month) và Loại khách hàng (VisitorType)</h3>
+          <div class="rounded-xl overflow-hidden border border-slate-100 bg-slate-50">
+            <img src="{{ url_for('static', filename='figures/exp4_error_breakdown.png') }}" alt="Error Breakdown" class="w-full h-auto object-cover">
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+          <h3 class="font-bold text-slate-900 text-sm">Ma Trận Nhầm Lẫn (Confusion Matrix): Naive RF vs Honest RF</h3>
+          <div class="rounded-xl overflow-hidden border border-slate-100 bg-slate-50">
+            <img src="{{ url_for('static', filename='figures/confusion_matrices.png') }}" alt="Confusion Matrices" class="w-full h-auto object-cover">
+          </div>
+        </div>
+      </div>
+
+      <!-- MODEL CARD & DATA CARD THEO CHUẨN QUỐC TẾ -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+        <div class="border-b border-slate-100 pb-3">
+          <h3 class="text-lg font-bold text-slate-900">Model Card & Data Card (Chuẩn hóa tài liệu theo Mitchell et al., 2019)</h3>
+          <p class="text-xs text-slate-500">Đặc tả minh bạch về giới hạn, kiến trúc và phạm vi sử dụng của hệ thống học máy</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs sm:text-sm text-slate-600">
+          
+          <!-- MODEL CARD -->
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+            <div class="font-bold text-slate-800 text-sm uppercase tracking-wider text-blue-700">MODEL CARD: Honest Random Forest</div>
+            <ul class="space-y-2 list-disc list-inside">
+              <li><strong>Mô hình sử dụng:</strong> Random Forest Classifier (150 trees, max_depth=10, min_samples_leaf=2, class_weight='balanced').</li>
+              <li><strong>Mục đích sử dụng (Intended Use):</strong> Phân loại phiên duyệt web thương mại điện tử nhằm tối ưu chiến dịch marketing sau khi phiên kết thúc.</li>
+              <li><strong>Phạm vi không khuyến nghị:</strong> Không dùng để can thiệp theo thời gian thực ở các giây đầu tiên; không dùng để định danh hay thu thập dữ liệu cá nhân (GDPR compliance).</li>
+              <li><strong>Đánh giá định lượng:</strong> PR-AUC = 0.3709, ROC-AUC = 0.7822, F1-Score = 0.4229 trên 1.831 phiên kiểm thử độc lập.</li>
+              <li><strong>Loại bỏ rủi ro:</strong> Đã loại trừ biến <code class="font-mono text-rose-600">PageValues</code> để triệt tiêu target proxy leakage.</li>
+            </ul>
+          </div>
+
+          <!-- DATA CARD -->
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+            <div class="font-bold text-slate-800 text-sm uppercase tracking-wider text-emerald-700">DATA CARD: Online Shoppers Purchasing Intention</div>
+            <ul class="space-y-2 list-disc list-inside">
+              <li><strong>Nguồn dữ liệu:</strong> UCI Machine Learning Repository (DOI: 10.24432/C5F88Q).</li>
+              <li><strong>Giấy phép:</strong> Creative Commons Attribution 4.0 International (CC BY 4.0).</li>
+              <li><strong>Quy mô dữ liệu:</strong> 12.330 phiên thô, 12.205 phiên sau khi khử 125 dòng trùng lặp (tránh split leakage).</li>
+              <li><strong>Đặc điểm phân bố:</strong> 15.6% phiên mua hàng (<code class="font-mono">Revenue = True</code>) và 84.4% phiên không mua (<code class="font-mono">Revenue = False</code>).</li>
+              <li><strong>Tiền xử lý trung thực:</strong> StandardScaler và OneHotEncoder được fit độc lập trên 8.543 phiên của tập Train.</li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-white border-t border-slate-200 mt-auto py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center sm:flex sm:justify-between sm:items-center text-xs text-slate-500">
+      <div>
+        <strong>PROJECT 19 — DỰ ĐOÁN PHIÊN MUA HÀNG VỚI KIỂM TOÁN RÒ RỈ</strong> | Nhóm 02 sinh viên
+      </div>
+      <div class="mt-2 sm:mt-0">
+        Giảng viên hướng dẫn: <strong>PGS.TS. NGUYỄN VĂN HẬU</strong> • Lớp 12523W.1
+      </div>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

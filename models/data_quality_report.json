@@ -1,0 +1,19 @@
+{
+  "total_raw_rows": 12330,
+  "total_raw_cols": 18,
+  "total_missing_values": 0,
+  "missing_by_column": {},
+  "duplicate_rows": 125,
+  "rows_after_dedup": 12205,
+  "class_distribution_raw": {
+    "False": 10422,
+    "True": 1908
+  },
+  "positive_rate_raw": 0.15474452554744525,
+  "class_distribution_cleaned": {
+    "False": 10297,
+    "True": 1908
+  },
+  "positive_rate_cleaned": 0.15632937320770177,
+  "dedup_rationale": "Loại bỏ 125 dòng trùng lặp nhằm tránh nguy cơ split leakage khi cùng 1 phiên xuất hiện ở cả Train và Test."
+}
